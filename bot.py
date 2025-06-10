@@ -1,25 +1,39 @@
 import ollama
+import telebot
+import os
+from dotenv import load_dotenv
 
-def chat():
-    print("test bot")
-    messages = []
+load_dotenv()
 
-    while True:
-        user_input = input("Вы: ")
-        if user_input.lower() == "exit":
-            print("bb")
-            break
+# token import
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 
-        messages.append({"role": "user", "content": user_input})
+if not TELEGRAM_TOKEN:
+    raise ValueError("token is missing")
 
-        response = ollama.chat(model="dolphin-llama3", messages=messages)
+bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-        # ответ
-        assistant_reply = response["message"]["content"]
+def chat(message):
+    chat_id = message.chat.id
+    user_input = message.text
 
-        messages.append({"role": "assistant", "content": assistant_reply})
+    # typing inc
+    bot.send_chat_action(chat_id, 'typing')
+    
+    response = ollama.chat(
+        model="dolphin-llama3",
+        messages=[{"role": "user", "content": user_input}]
+    )
+    
+    assistant_reply = response["message"]["content"]
+    
+    # response
+    bot.send_message(chat_id, assistant_reply)
 
-        print("Бот:", assistant_reply)
+@bot.message_handler(func=lambda message: True)
+def handle_message(message):
+    chat(message)
 
 if __name__ == "__main__":
-    chat()
+    print("Bot is ready")
+    bot.infinity_polling()
